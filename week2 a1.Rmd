@@ -1,0 +1,102 @@
+---
+title: "week2 assignment1"
+author: "Jingwen Mou"
+date: "2021/11/5"
+output: html_document
+---
+
+###0. Load the data and set global options.
+
+```{r, echo = TRUE, message = FALSE, warning=FALSE}
+setwd("/Users/apple/Desktop/datasciencecoursera/notes/Reproducible Research/week2/a1")
+whole_data <- read.csv("activity.csv")
+library(dplyr)
+library(ggplot2)
+```
+
+
+###1.What is mean total number of steps taken per day? 
+
+```{r, echo = TRUE, warning = FALSE}
+whole_data_clean <- na.omit(whole_data)
+total_by_date <- aggregate(steps ~ date, whole_data_clean, sum)
+hist(total_by_date$steps,
+     main = "Total Number of Steps Taken Each Day",
+     xlab = "Number of Steps Taken")
+mean_steps <- sum(total_by_date$steps)/61
+median_steps <- median(total_by_date$steps)
+```
+
+The mean total number of steps taken per day is `r mean_steps`.
+The median total number of steps taken is `r median_steps`.
+
+
+###2.What is the average daily activity pattern?
+
+```{r, echo = TRUE, warning = FALSE}
+daily_pattern <- aggregate(steps ~ interval, whole_data_clean, sum)
+daily_pattern$steps <- daily_pattern$steps/61
+with(daily_pattern, plot(interval, steps,
+                         main = "Average Daily Activity Pattern",
+                         xlab = "Time Interval",
+                         ylab = "Average Steps Taken",
+                         type = "l"))
+max_steps_row <- which.max(daily_pattern$steps)
+max_steps_interval <- daily_pattern[max_steps_row, ]$interval
+max_steps <- daily_pattern[max_steps_row, ]$steps
+```
+
+The 5-minute interval containing the maximum number of steps is `max_steps_inerval`, when `max_steps` steps are taken in that interval.
+
+
+###3. Imputing missing values.
+
+```{r, echo = TRUE, warning = FALSE}
+na_row_number <- nrow(whole_data) - nrow(whole_data_clean)
+```
+
+There are `na_row_number` rows with missing values.
+
+```{r, echo = TRUE, warning = FALSE}
+whole_data1 <- whole_data
+na_position <- is.na(whole_data1$steps)
+avg_steps <- tapply(whole_data1$steps, whole_data1$interval, mean,
+                    na.rm =TRUE, simplify = TRUE)
+whole_data1$steps[na_position] <- avg_steps[as.character
+                                (whole_data1$interval[na_position])]
+```
+
+```{r, echo = TRUE, warning = FALSE}
+total_by_date1 <- aggregate(steps ~ date, whole_data1, sum)
+hist(total_by_date1$steps,
+     main = "Total Number of Steps Taken Each Day #2",
+     xlab = "Number of Steps Taken")
+mean_steps1 <- sum(total_by_date1$steps)/61
+median_steps1 <- median(total_by_date1$steps)
+```
+
+The mean total number of steps taken per day is `r mean_steps1`.
+The median total number of steps taken is `r median_steps1`.
+The results differ from the estimates from the first part, the mean and median are the same this time. The estimates using this startegy is more accurate.
+
+
+###4. Are there differences in activity patterns between weekdays and weekends?
+
+
+```{r, echo = TRUE, warning = FALSE}
+whole_data1$date <- as.Date(whole_data1$date)
+
+whole_data1 <- mutate(whole_data, Weekdays = ifelse(weekdays(whole_data1$date) == "星期六" | weekdays(whole_data1$date) == "星期日", "weekend", "weekday"))
+
+whole_data1$Weekdays <- as.factor(whole_data1$Weekdays)
+```
+
+```{r, echo = TRUE, warning = FALSE}
+avg_steps1 <- aggregate(steps~interval + Weekdays, whole_data1, mean)
+ggplot(avg_steps1, aes(interval, steps)) +
+    geom_line() +
+    facet_wrap( ~ Weekdays, nrow = 2) +
+    xlab("Interval") +
+    ylab("Average Steps")
+```
+
